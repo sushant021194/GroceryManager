@@ -3,7 +3,58 @@
 <head>
     <title>Grocery Inventory Manager</title>
     <style>
+        /* Common styles */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
         /* Add your CSS styles here */
+        .tab {
+            display: flex;
+            justify-content: space-around;
+            padding: 10px;
+            background-color: #f1f1f1;
+        }
+
+        .tab button {
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #ccc;
+            transition: background-color 0.3s;
+        }
+
+        .tab button:hover {
+            background-color: #ddd;
+        }
+
+        .content {
+            display: none;
+            padding: 20px;
+        }
+
+        .content h2 {
+            margin-top: 0;
+        }
+
+        .content p {
+            margin: 0;
+        }
+
+        /* Responsive styles */
+        @media only screen and (max-width: 768px) {
+            .tab button {
+                font-size: 16px;
+            }
+
+            .content {
+                padding: 10px;
+            }
+        }
     </style>
 </head>
 <body>
