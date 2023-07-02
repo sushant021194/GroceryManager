@@ -55,6 +55,9 @@ body {
 	}
 }
 </style>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script
+	src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
 	<div class="tab">
@@ -103,11 +106,6 @@ body {
 		<button class="btn" onclick="addStore()">Add</button>
 		<ul id="storeList"></ul>
 	</div>
-
-	<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-	<script
-		src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-
 	<script>
 		// Initialize Firebase with your Firebase project's configuration
 		var firebaseConfig = {
