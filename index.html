@@ -104,295 +104,228 @@
         <ul id="storeList"></ul>
     </div>
 
+    <!-- Add this line to include the Fetch API Polyfill for older browsers -->
+    <script src="https://cdn.jsdelivr.net/npm/fetch-polyfill"></script>
+
     <script>
         var categories = [];
         var stores = [];
         var inventoryList = [];
         var shoppingList = [];
 
-        function loadFromLocalStorage() {
-            var storedCategories = localStorage.getItem('categories');
-            if (storedCategories) {
-                categories = JSON.parse(storedCategories);
-            }
+        function loadFromGitHub() {
+            // Load categories from GitHub JSON file
+            fetch('https://raw.githubusercontent.com/sushant021194/GroceryManager/main/categories.json')
+                .then(response => response.json())
+                .then(data => {
+                    categories = data;
+                    populateCategoryList();
+                    populateCategoryDropdown();
+                })
+                .catch(err => {
+                    console.error('Error loading categories:', err);
+                });
 
-            var storedStores = localStorage.getItem('stores');
-            if (storedStores) {
-                stores = JSON.parse(storedStores);
-            }
+            // Load stores from GitHub JSON file
+            fetch('https://raw.githubusercontent.com/sushant021194/GroceryManager/main/stores.json')
+                .then(response => response.json())
+                .then(data => {
+                    stores = data;
+                    populateStoreList();
+                    populateStoreDropdown();
+                })
+                .catch(err => {
+                    console.error('Error loading stores:', err);
+                });
 
-            var storedInventoryList = localStorage.getItem('inventoryList');
-            if (storedInventoryList) {
-                inventoryList = JSON.parse(storedInventoryList);
-            }
+            // Load inventoryList from GitHub JSON file
+            fetch('https://raw.githubusercontent.com/sushant021194/GroceryManager/main/inventoryList.json')
+                .then(response => response.json())
+                .then(data => {
+                    inventoryList = data;
+                    populateInventoryList();
+                })
+                .catch(err => {
+                    console.error('Error loading inventoryList:', err);
+                });
 
-            var storedShoppingList = localStorage.getItem('shoppingList');
-            if (storedShoppingList) {
-                shoppingList = JSON.parse(storedShoppingList);
-            }
+            // Load shoppingList from GitHub JSON file
+            fetch('https://raw.githubusercontent.com/sushant021194/GroceryManager/main/shoppingList.json')
+                .then(response => response.json())
+                .then(data => {
+                    shoppingList = data;
+                    populateShoppingList();
+                })
+                .catch(err => {
+                    console.error('Error loading shoppingList:', err);
+                });
         }
 
-        function saveToLocalStorage() {
-            localStorage.setItem('categories', JSON.stringify(categories));
-            localStorage.setItem('stores', JSON.stringify(stores));
-            localStorage.setItem('inventoryList', JSON.stringify(inventoryList));
-            localStorage.setItem('shoppingList', JSON.stringify(shoppingList));
-        }
+        function saveToGitHub() {
+            // Save categories to GitHub JSON file
+            fetch('https://api.github.com/repos/sushant021194/GroceryManager/contents/categories.json', {
+                method: 'PUT',
+                headers: {
+                    'Authorization': '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', // Replace with your GitHub token
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: 'Update categories.json',
+                    content: btoa(JSON.stringify(categories)), // Convert data to base64
+                    sha: 'latest', // Set the latest SHA of the file
+                }),
+            })
+            .then(response => {
+                console.log('Categories saved to GitHub:', response);
+            })
+            .catch(err => {
+                console.error('Error saving categories:', err);
+            });
 
-        function openTab(tabName) {
-            var tabs = document.getElementsByClassName("content");
-            for (var i = 0; i < tabs.length; i++) {
-                tabs[i].style.display = "none";
-            }
+            // Save stores to GitHub JSON file (similar fetch request as above)
 
-            document.getElementById(tabName).style.display = "block";
+            // Save inventoryList to GitHub JSON file (similar fetch request as above)
 
-            if (tabName === 'MyInventory') {
-                populateInventoryList();
-            } else if (tabName === 'ShoppingList') {
-                populateShoppingList();
-                populateCategoryDropdown();
-                populateStoreDropdown();
-            } else if (tabName === 'Category') {
-                populateCategoryList();
-            } else if (tabName === 'Store') {
-                populateStoreList();
-            }
-        }
-
-        function populateInventoryList() {
-            var inventoryListContainer = document.getElementById('inventoryList');
-            inventoryListContainer.innerHTML = '';
-
-            if (inventoryList.length === 0) {
-                inventoryListContainer.innerHTML = "<p>No products in the inventory.</p>";
-            } else {
-                var table = document.createElement("table");
-                var thead = document.createElement("thead");
-                var tbody = document.createElement("tbody");
-
-                // Create table header
-                var headerRow = document.createElement("tr");
-                var headers = ["Name", "Quantity", "Price", "Category", "Store", ""];
-                for (var i = 0; i < headers.length; i++) {
-                    var th = document.createElement("th");
-                    th.innerText = headers[i];
-                    headerRow.appendChild(th);
-                }
-                thead.appendChild(headerRow);
-
-                // Create table rows
-                for (var i = 0; i < inventoryList.length; i++) {
-                    var product = inventoryList[i];
-                    var row = document.createElement("tr");
-                    row.innerHTML = "<td>" + product.name + "</td>" +
-                        "<td>" + product.quantity + "</td>" +
-                        "<td>" + product.price + "</td>" +
-                        "<td>" + product.category + "</td>" +
-                        "<td>" + product.store + "</td>" +
-                        '<td><button class="btn" onclick="addToShoppingList(' + i + ')">Add to Shopping List</button></td>';
-                    tbody.appendChild(row);
-                }
-
-                table.appendChild(thead);
-                table.appendChild(tbody);
-                inventoryListContainer.appendChild(table);
-            }
-        }
-
-        function populateShoppingList() {
-            var shoppingListContainer = document.getElementById('shoppingList');
-            shoppingListContainer.innerHTML = '';
-
-            if (shoppingList.length === 0) {
-                shoppingListContainer.innerHTML = "<p>No products in the shopping list.</p>";
-            } else {
-                var table = document.createElement("table");
-                var thead = document.createElement("thead");
-                var tbody = document.createElement("tbody");
-
-                // Create table header
-                var headerRow = document.createElement("tr");
-                var headers = ["Name", "Quantity", "Price", "Category", "Store", ""];
-                for (var i = 0; i < headers.length; i++) {
-                    var th = document.createElement("th");
-                    th.innerText = headers[i];
-                    headerRow.appendChild(th);
-                }
-                thead.appendChild(headerRow);
-
-                // Create table rows
-                for (var i = 0; i < shoppingList.length; i++) {
-                    var product = shoppingList[i];
-                    var row = document.createElement("tr");
-                    row.innerHTML = "<td>" + product.name + "</td>" +
-                        "<td>" + product.quantity + "</td>" +
-                        "<td>" + product.price + "</td>" +
-                        "<td>" + product.category + "</td>" +
-                        "<td>" + product.store + "</td>" +
-                        '<td><button class="btn" onclick="addToInventory(' + i + ')">Add to My Inventory</button></td>'+
-						'<td><button class="btn" onclick="addToInventory(' + i + ')">Remove Product</button></td>';
-                    tbody.appendChild(row);
-                }
-
-                table.appendChild(thead);
-                table.appendChild(tbody);
-                shoppingListContainer.appendChild(table);
-            }
-        }
-
-        function populateCategoryDropdown() {
-            var categoryDropdown = document.getElementById('productCategory');
-            categoryDropdown.innerHTML = '<option value="">Select Category</option>';
-
-            for (var i = 0; i < categories.length; i++) {
-                var category = categories[i];
-                categoryDropdown.innerHTML += '<option value="' + category + '">' + category + '</option>';
-            }
-        }
-
-        function populateStoreDropdown() {
-            var storeDropdown = document.getElementById('productStore');
-            storeDropdown.innerHTML = '<option value="">Select Store</option>';
-
-            for (var i = 0; i < stores.length; i++) {
-                var store = stores[i];
-                storeDropdown.innerHTML += '<option value="' + store + '">' + store + '</option>';
-            }
+            // Save shoppingList to GitHub JSON file (similar fetch request as above)
         }
 
         function populateCategoryList() {
-            var categoryListContainer = document.getElementById('categoryList');
-            categoryListContainer.innerHTML = '';
-
-            for (var i = 0; i < categories.length; i++) {
-                var category = categories[i];
+            var categoryList = document.getElementById('categoryList');
+            categoryList.innerHTML = '';
+            categories.forEach(function (category) {
                 var li = document.createElement('li');
-                li.innerHTML = category + ' <button class="btn" onclick="removeCategory(' + i + ')">Remove</button>';
-                categoryListContainer.appendChild(li);
-            }
+                li.textContent = category;
+                categoryList.appendChild(li);
+            });
+        }
+
+        function populateCategoryDropdown() {
+            var productCategory = document.getElementById('productCategory');
+            productCategory.innerHTML = '<option value="">Select Category</option>';
+            categories.forEach(function (category) {
+                var option = document.createElement('option');
+                option.value = category;
+                option.textContent = category;
+                productCategory.appendChild(option);
+            });
         }
 
         function populateStoreList() {
-            var storeListContainer = document.getElementById('storeList');
-            storeListContainer.innerHTML = '';
-
-            for (var i = 0; i < stores.length; i++) {
-                var store = stores[i];
+            var storeList = document.getElementById('storeList');
+            storeList.innerHTML = '';
+            stores.forEach(function (store) {
                 var li = document.createElement('li');
-                li.innerHTML = store + ' <button class="btn" onclick="removeStore(' + i + ')">Remove</button>';
-                storeListContainer.appendChild(li);
+                li.textContent = store;
+                storeList.appendChild(li);
+            });
+        }
+
+        function populateStoreDropdown() {
+            var productStore = document.getElementById('productStore');
+            productStore.innerHTML = '<option value="">Select Store</option>';
+            stores.forEach(function (store) {
+                var option = document.createElement('option');
+                option.value = store;
+                option.textContent = store;
+                productStore.appendChild(option);
+            });
+        }
+
+        function populateInventoryList() {
+            var inventoryListDiv = document.getElementById('inventoryList');
+            inventoryListDiv.innerHTML = '';
+            inventoryList.forEach(function (product) {
+                var p = document.createElement('p');
+                p.textContent = product.name + ' - Quantity: ' + product.quantity + ', Price: ' + product.price;
+                inventoryListDiv.appendChild(p);
+            });
+        }
+
+        function populateShoppingList() {
+            var shoppingListDiv = document.getElementById('shoppingList');
+            shoppingListDiv.innerHTML = '';
+            shoppingList.forEach(function (product) {
+                var p = document.createElement('p');
+                p.textContent = product.name + ' - Quantity: ' + product.quantity + ', Price: ' + product.price;
+                shoppingListDiv.appendChild(p);
+            });
+        }
+
+        function openTab(tabName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName('content');
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = 'none';
             }
-        }
-
-        function addCategory() {
-            var newCategoryInput = document.getElementById('newCategory');
-            var newCategory = newCategoryInput.value.trim();
-
-            if (newCategory !== '') {
-                categories.push(newCategory);
-                newCategoryInput.value = '';
-                populateCategoryList();
-                populateCategoryDropdown();
-                saveToLocalStorage();
+            tablinks = document.getElementsByClassName('tablinks');
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(' active', '');
             }
-        }
-
-        function removeCategory(index) {
-            categories.splice(index, 1);
-            populateCategoryList();
-            populateCategoryDropdown();
-            saveToLocalStorage();
-        }
-
-        function addStore() {
-            var newStoreInput = document.getElementById('newStore');
-            var newStore = newStoreInput.value.trim();
-
-            if (newStore !== '') {
-                stores.push(newStore);
-                newStoreInput.value = '';
-                populateStoreList();
-                populateStoreDropdown();
-                saveToLocalStorage();
-            }
-        }
-
-        function removeStore(index) {
-            stores.splice(index, 1);
-            populateStoreList();
-            populateStoreDropdown();
-            saveToLocalStorage();
+            document.getElementById(tabName).style.display = 'block';
+            event.currentTarget.className += ' active';
         }
 
         function addProduct() {
-            document.getElementById('addProductContainer').style.display = 'block';
-        }
-
-        function closeModal() {
-            document.getElementById('addProductContainer').style.display = 'none';
+            var addProductContainer = document.getElementById('addProductContainer');
+            addProductContainer.style.display = 'block';
         }
 
         function submitProduct() {
-            var productNameInput = document.getElementById('productName');
-            var productQuantityInput = document.getElementById('productQuantity');
-            var productPriceInput = document.getElementById('productPrice');
-            var productCategoryInput = document.getElementById('productCategory');
-            var productStoreInput = document.getElementById('productStore');
+            var productName = document.getElementById('productName').value;
+            var productQuantity = document.getElementById('productQuantity').value;
+            var productPrice = document.getElementById('productPrice').value;
+            var productCategory = document.getElementById('productCategory').value;
+            var productStore = document.getElementById('productStore').value;
 
-            var productName = productNameInput.value.trim();
-            var productQuantity = productQuantityInput.value.trim();
-            var productPrice = productPriceInput.value.trim();
-            var productCategory = productCategoryInput.value.trim();
-            var productStore = productStoreInput.value.trim();
+            var product = {
+                name: productName,
+                quantity: productQuantity,
+                price: productPrice,
+                category: productCategory,
+                store: productStore
+            };
 
-            if (productName !== '' && productQuantity !== '' && productPrice !== '' && productCategory !== '' && productStore !== '') {
-                var product = {
-                    name: productName,
-                    quantity: productQuantity,
-                    price: productPrice,
-                    category: productCategory,
-                    store: productStore
-                };
-
-                shoppingList.push(product);
-                productNameInput.value = '';
-                productQuantityInput.value = '';
-                productPriceInput.value = '';
-                productCategoryInput.value = '';
-                productStoreInput.value = '';
-
-                closeModal();
-                populateShoppingList();
-                saveToLocalStorage();
-            }
-        }
-
-        function addToShoppingList(index) {
-            var product = inventoryList[index];
             shoppingList.push(product);
-            inventoryList.splice(index, 1);
-            populateInventoryList();
             populateShoppingList();
-            saveToLocalStorage();
+
+            // Clear the form
+            document.getElementById('productName').value = '';
+            document.getElementById('productQuantity').value = '';
+            document.getElementById('productPrice').value = '';
+            document.getElementById('productCategory').value = '';
+            document.getElementById('productStore').value = '';
+
+            closeModal();
         }
 
-        function addToInventory(index) {
-            var product = shoppingList[index];
-            inventoryList.push(product);
-            shoppingList.splice(index, 1);
-            populateInventoryList();
-            populateShoppingList();
-            saveToLocalStorage();
-        }
-		
-		function RemoveProduct(index) {
-            inventoryList.splice(index, 1);
-			populateInventoryList();
+        function closeModal() {
+            var addProductContainer = document.getElementById('addProductContainer');
+            addProductContainer.style.display = 'none';
         }
 
-        loadFromLocalStorage();
-        openTab('MyInventory');
+        function addCategory() {
+            var newCategory = document.getElementById('newCategory').value;
+            categories.push(newCategory);
+            populateCategoryList();
+            populateCategoryDropdown();
+            saveToGitHub();
+            document.getElementById('newCategory').value = '';
+        }
+
+        function addStore() {
+            var newStore = document.getElementById('newStore').value;
+            stores.push(newStore);
+            populateStoreList();
+            populateStoreDropdown();
+            saveToGitHub();
+            document.getElementById('newStore').value = '';
+        }
+
+        // Load data from GitHub when the page loads
+        document.addEventListener('DOMContentLoaded', loadFromGitHub);
+
+        // Save data to GitHub when the page is unloaded
+        window.addEventListener('beforeunload', saveToGitHub);
     </script>
 </body>
 </html>
