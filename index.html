@@ -179,7 +179,8 @@
                         "<td>" + product.price + "</td>" +
                         "<td>" + product.category + "</td>" +
                         "<td>" + product.store + "</td>" +
-                        '<td><button class="btn" onclick="addToInventory(' + i + ')">Add to My Inventory</button></td>';
+                        '<td><button class="btn" onclick="addToInventory(' + i + ')">Add to My Inventory</button></td>'+
+						'<td><button class="btn" onclick="addToInventory(' + i + ')">Remove Product</button></td>';
                     tbody.appendChild(row);
                 }
 
@@ -332,6 +333,11 @@
             populateInventoryList();
             populateShoppingList();
             saveToLocalStorage();
+        }
+		
+		function RemoveProduct(index) {
+            inventoryList.splice(index, 1);
+			populateInventoryList();
         }
 
         loadFromLocalStorage();
