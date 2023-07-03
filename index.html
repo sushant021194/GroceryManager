@@ -1,496 +1,282 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Grocery Inventory Manager</title>
-<style>
-/* Common styles */
-body {
-	font-family: Arial, sans-serif;
-	margin: 0;
-	padding: 0;
-}
+<title>Shopping List</title>
+<script
+	src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://apis.google.com/js/api.js"></script>
+<script type="text/javascript">
+	var clientId = '858797607546-dp88c7nfffrbgqf9nl73tpcsu6erbsno.apps.googleusercontent.com';
+	var spreadsheetId = '1ExPySGmKeU9pkXGoZfedwfJF4rtK5jJuOlxY1OGuYiY';
+	var categoriesSheetName = 'Categories';
+	var storesSheetName = 'Stores';
+	var inventorySheetName = 'Inventory';
+	var shoppingListSheetName = 'Shopping List';
 
-/* Add your CSS styles here */
-.tab {
-	display: flex;
-	justify-content: space-around;
-	padding: 10px;
-	background-color: #f1f1f1;
-}
+	var categories = [];
+	var stores = [];
+	var inventoryList = [];
+	var shoppingList = [];
 
-.tab button {
-	border: none;
-	outline: none;
-	cursor: pointer;
-	padding: 10px 20px;
-	font-size: 18px;
-	background-color: #ccc;
-	transition: background-color 0.3s;
-}
-
-.tab button:hover {
-	background-color: #ddd;
-}
-
-.content {
-	display: none;
-	padding: 20px;
-}
-
-.content h2 {
-	margin-top: 0;
-}
-
-.content p {
-	margin: 0;
-}
-
-/* Responsive styles */
-@media only screen and (max-width: 768px) {
-	.tab button {
-		font-size: 16px;
+	function handleClientLoad() {
+		gapi.load('client:auth2', initClient);
 	}
-	.content {
-		padding: 10px;
-	}
-}
-</style>
 
+	function initClient() {
+		gapi.client.init({
+			clientId : clientId,
+			scope : 'https://www.googleapis.com/auth/spreadsheets'
+		}).then(function() {
+			loadFromSheets();
+			setupRealTimeUpdates();
+		});
+	}
+
+	function loadFromSheets() {
+		gapi.client.sheets.spreadsheets.values.get({
+			spreadsheetId : spreadsheetId,
+			range : categoriesSheetName
+		}).then(function(response) {
+			var range = response.result;
+			if (range.values.length > 0) {
+				categories = range.values[0];
+			}
+			loadCategories();
+		});
+
+		gapi.client.sheets.spreadsheets.values.get({
+			spreadsheetId : spreadsheetId,
+			range : storesSheetName
+		}).then(function(response) {
+			var range = response.result;
+			if (range.values.length > 0) {
+				stores = range.values[0];
+			}
+			loadStores();
+		});
+
+		gapi.client.sheets.spreadsheets.values.get({
+			spreadsheetId : spreadsheetId,
+			range : inventorySheetName
+		}).then(function(response) {
+			var range = response.result;
+			if (range.values.length > 0) {
+				for (var i = 1; i < range.values.length; i++) {
+					var row = range.values[i];
+					var product = {
+						name : row[0],
+						quantity : row[1],
+						price : row[2],
+						category : row[3],
+						store : row[4]
+					};
+					inventoryList.push(product);
+				}
+			}
+			loadInventoryList();
+		});
+
+		gapi.client.sheets.spreadsheets.values.get({
+			spreadsheetId : spreadsheetId,
+			range : shoppingListSheetName
+		}).then(function(response) {
+			var range = response.result;
+			if (range.values.length > 0) {
+				for (var i = 1; i < range.values.length; i++) {
+					var row = range.values[i];
+					var product = {
+						name : row[0],
+						quantity : row[1],
+						price : row[2],
+						category : row[3],
+						store : row[4]
+					};
+					shoppingList.push(product);
+				}
+			}
+			loadShoppingList();
+		});
+	}
+
+	function addToShoppingList() {
+		var name = document.getElementById('productName').value;
+		var quantity = document.getElementById('productQuantity').value;
+		var price = document.getElementById('productPrice').value;
+		var category = document.getElementById('productCategory').value;
+		var store = document.getElementById('productStore').value;
+
+		var product = {
+			name : name,
+			quantity : quantity,
+			price : price,
+			category : category,
+			store : store
+		};
+		shoppingList.push(product);
+		addToSheets(shoppingListSheetName, product);
+		loadShoppingList();
+	}
+
+	function addToSheets(sheetName, product) {
+		gapi.client.sheets.spreadsheets.values
+				.append(
+						{
+							spreadsheetId : spreadsheetId,
+							range : sheetName,
+							valueInputOption : 'USER_ENTERED',
+							insertDataOption : 'INSERT_ROWS',
+							resource : {
+								values : [ [ product.name, product.quantity,
+										product.price, product.category,
+										product.store ] ]
+							}
+						}).then(function(response) {
+					console.log('Product added to ' + sheetName);
+				}, function(response) {
+					console.error('Error adding product to ' + sheetName);
+				});
+	}
+
+	function loadCategories() {
+		var categorySelect = document.getElementById('productCategory');
+		categorySelect.innerHTML = '';
+		for (var i = 0; i < categories.length; i++) {
+			var option = document.createElement('option');
+			option.value = categories[i];
+			option.text = categories[i];
+			categorySelect.appendChild(option);
+		}
+	}
+
+	function loadStores() {
+		var storeSelect = document.getElementById('productStore');
+		storeSelect.innerHTML = '';
+		for (var i = 0; i < stores.length; i++) {
+			var option = document.createElement('option');
+			option.value = stores[i];
+			option.text = stores[i];
+			storeSelect.appendChild(option);
+		}
+	}
+
+	function loadShoppingList() {
+		var shoppingListDiv = document.getElementById('shoppingList');
+		shoppingListDiv.innerHTML = '';
+		for (var i = 0; i < shoppingList.length; i++) {
+			var product = shoppingList[i];
+			var p = document.createElement('p');
+			p.textContent = 'Name: ' + product.name + ', Quantity: '
+					+ product.quantity + ', Price: ' + product.price
+					+ ', Category: ' + product.category + ', Store: '
+					+ product.store;
+			shoppingListDiv.appendChild(p);
+		}
+	}
+
+	function loadInventoryList() {
+		var inventoryListDiv = document.getElementById('inventoryList');
+		inventoryListDiv.innerHTML = '';
+		for (var i = 0; i < inventoryList.length; i++) {
+			var product = inventoryList[i];
+			var p = document.createElement('p');
+			p.textContent = 'Name: ' + product.name + ', Quantity: '
+					+ product.quantity + ', Price: ' + product.price
+					+ ', Category: ' + product.category + ', Store: '
+					+ product.store;
+			inventoryListDiv.appendChild(p);
+		}
+	}
+
+	function handleRealTimeUpdates(response) {
+		var updatedRange = response.result.updatedRange;
+		var sheetName = updatedRange.split('!')[0];
+		if (sheetName === inventorySheetName) {
+			loadInventoryList();
+		} else if (sheetName === shoppingListSheetName) {
+			loadShoppingList();
+		}
+	}
+
+	function setupRealTimeUpdates() {
+		var params = {
+			spreadsheetId : spreadsheetId,
+			ranges : [ inventorySheetName, shoppingListSheetName ],
+			includeGridData : false
+		};
+		var request = gapi.client.sheets.spreadsheets.get(params);
+		request
+				.then(
+						function(response) {
+							var sheets = response.result.sheets;
+							for (var i = 0; i < sheets.length; i++) {
+								var sheetId = sheets[i].properties.sheetId;
+								gapi.client.sheets.spreadsheets.sheets
+										.watch(
+												{
+													spreadsheetId : spreadsheetId,
+													resource : {
+														sheetId : sheetId,
+														ranges : [
+																inventorySheetName,
+																shoppingListSheetName ],
+														type : 'PUSH',
+														address : {
+															row : 1,
+															column : 1,
+															sheetId : sheetId
+														}
+													}
+												})
+										.then(
+												function(response) {
+													console
+															.log('Real-time updates enabled for sheet: '
+																	+ response.result.sheetId);
+												},
+												function(response) {
+													console
+															.error('Error enabling real-time updates for sheet: '
+																	+ response.result.sheetId);
+												});
+							}
+						},
+						function(response) {
+							console
+									.error('Error getting spreadsheet information');
+						});
+	}
+
+	$(document).ready(function() {
+		$('#addToShoppingListForm').submit(function(event) {
+			event.preventDefault();
+			addToShoppingList();
+		});
+	});
+</script>
 </head>
 <body>
-	<div class="tab">
-		<button class="tablinks" onclick="openTab('MyInventory')">My
-			Inventory</button>
-		<button class="tablinks" onclick="openTab('ShoppingList')">Shopping
-			List</button>
-		<button class="tablinks" onclick="openTab('Category')">Category</button>
-		<button class="tablinks" onclick="openTab('Store')">Store</button>
-	</div>
+	<h1>Shopping List</h1>
 
-	<div id="MyInventory" class="content">
-		<h2>My Inventory</h2>
-		<div id="inventoryList"></div>
-	</div>
+	<form id="addToShoppingListForm">
+		<label for="productName">Product Name:</label> <input type="text"
+			id="productName" required><br> <label
+			for="productQuantity">Quantity:</label> <input type="number"
+			id="productQuantity" required><br> <label
+			for="productPrice">Price:</label> <input type="number"
+			id="productPrice" step="0.01" required><br> <label
+			for="productCategory">Category:</label> <select id="productCategory"></select><br>
 
-	<div id="ShoppingList" class="content">
-		<h2>Shopping List</h2>
-		<div id="shoppingList"></div>
-		<button class="btn" onclick="addProduct()">Add Product</button>
-		<div id="addProductContainer" style="display: none;">
-			<h3>Add Product</h3>
-			<input type="text" id="productName" placeholder="Name"><br>
-			<input type="text" id="productQuantity" placeholder="Quantity"><br>
-			<input type="text" id="productPrice" placeholder="Price"><br>
-			<select id="productCategory">
-				<option value="">Select Category</option>
-			</select><br> <select id="productStore">
-				<option value="">Select Store</option>
-			</select><br>
-			<button class="btn" onclick="submitProduct()">Submit</button>
-			<button class="btn" onclick="closeModal()">Cancel</button>
-		</div>
-	</div>
+		<label for="productStore">Store:</label> <select id="productStore"></select><br>
 
-	<div id="Category" class="content">
-		<h2>Category</h2>
-		<input type="text" id="newCategory" placeholder="Enter Category">
-		<button class="btn" onclick="addCategory()">Add</button>
-		<ul id="categoryList"></ul>
-	</div>
+		<button type="submit">Add to Shopping List</button>
+	</form>
 
-	<div id="Store" class="content">
-		<h2>Store</h2>
-		<input type="text" id="newStore" placeholder="Enter Store">
-		<button class="btn" onclick="addStore()">Add</button>
-		<ul id="storeList"></ul>
-	</div>
-	<script>
-		// Initialize Firebase with your Firebase project's configuration
-		var firebaseConfig = {
-			apiKey : "AIzaSyB5UZKeT9jJgaYwIyFzS5BxdT1-tnW8uUc",
-			authDomain : "grocerymanager-391518.firebaseapp.com",
-			databaseURL : "https://grocerymanager-391518-default-rtdb.firebaseio.com",
-			projectId : "grocerymanager-391518",
-			storageBucket : "grocerymanager-391518.appspot.com",
-			messagingSenderId : "858797607546",
-			appId : "1:858797607546:web:9a96a62545362caca089c3",
-			measurementId : "G-ZZ3HPXDMX7"
-		};
-		firebase.initializeApp(firebaseConfig);
+	<h2>Shopping List</h2>
+	<div id="shoppingList"></div>
 
-		// Reference to Firebase database
-		var database = firebase.database();
+	<h2>Inventory List</h2>
+	<div id="inventoryList"></div>
 
-		// Load data from Firebase
-		function loadDataFromFirebase() {
-			var categoriesRef = database.ref('categories');
-			var storesRef = database.ref('stores');
-			var inventoryListRef = database.ref('inventoryList');
-			var shoppingListRef = database.ref('shoppingList');
-
-			categoriesRef.on('value', function(snapshot) {
-				categories = snapshot.val() || [];
-				// Update your category dropdown or list here
-			});
-
-			storesRef.on('value', function(snapshot) {
-				stores = snapshot.val() || [];
-				// Update your store dropdown or list here
-			});
-
-			inventoryListRef.on('value', function(snapshot) {
-				inventoryList = snapshot.val() || [];
-				populateInventoryList();
-			});
-
-			shoppingListRef.on('value', function(snapshot) {
-				shoppingList = snapshot.val() || [];
-				populateShoppingList();
-			});
-		}
-
-		// Save data to Firebase
-		function saveDataToFirebase() {
-			var categoriesRef = database.ref('categories');
-			var storesRef = database.ref('stores');
-			var inventoryListRef = database.ref('inventoryList');
-			var shoppingListRef = database.ref('shoppingList');
-
-			categoriesRef.set(categories);
-			storesRef.set(stores);
-			inventoryListRef.set(inventoryList);
-			shoppingListRef.set(shoppingList);
-		}
-
-		// Load data from Firebase on page load
-		window.onload = function() {
-			loadDataFromFirebase();
-		};
-
-		function loadFromLocalStorage() {
-			var storedCategories = localStorage.getItem('categories');
-			if (storedCategories) {
-				categories = JSON.parse(storedCategories);
-			}
-
-			var storedStores = localStorage.getItem('stores');
-			if (storedStores) {
-				stores = JSON.parse(storedStores);
-			}
-
-			var storedInventoryList = localStorage.getItem('inventoryList');
-			if (storedInventoryList) {
-				inventoryList = JSON.parse(storedInventoryList);
-			}
-
-			var storedShoppingList = localStorage.getItem('shoppingList');
-			if (storedShoppingList) {
-				shoppingList = JSON.parse(storedShoppingList);
-			}
-		}
-
-		function saveToLocalStorage() {
-			localStorage.setItem('categories', JSON.stringify(categories));
-			localStorage.setItem('stores', JSON.stringify(stores));
-			localStorage
-					.setItem('inventoryList', JSON.stringify(inventoryList));
-			localStorage.setItem('shoppingList', JSON.stringify(shoppingList));
-		}
-
-		function openTab(tabName) {
-			var tabs = document.getElementsByClassName("content");
-			for (var i = 0; i < tabs.length; i++) {
-				tabs[i].style.display = "none";
-			}
-
-			document.getElementById(tabName).style.display = "block";
-
-			if (tabName === 'MyInventory') {
-				populateInventoryList();
-			} else if (tabName === 'ShoppingList') {
-				populateShoppingList();
-				populateCategoryDropdown();
-				populateStoreDropdown();
-			} else if (tabName === 'Category') {
-				populateCategoryList();
-			} else if (tabName === 'Store') {
-				populateStoreList();
-			}
-		}
-
-		function populateInventoryList() {
-			var inventoryListContainer = document
-					.getElementById('inventoryList');
-			inventoryListContainer.innerHTML = '';
-
-			if (inventoryList.length === 0) {
-				inventoryListContainer.innerHTML = "<p>No products in the inventory.</p>";
-			} else {
-				var table = document.createElement("table");
-				var thead = document.createElement("thead");
-				var tbody = document.createElement("tbody");
-
-				// Create table header
-				var headerRow = document.createElement("tr");
-				var headers = [ "Name", "Quantity", "Price", "Category",
-						"Store", "" ];
-				for (var i = 0; i < headers.length; i++) {
-					var th = document.createElement("th");
-					th.innerText = headers[i];
-					headerRow.appendChild(th);
-				}
-				thead.appendChild(headerRow);
-
-				// Create table rows
-				for (var i = 0; i < inventoryList.length; i++) {
-					var product = inventoryList[i];
-					var row = document.createElement("tr");
-					row.innerHTML = "<td>"
-							+ product.name
-							+ "</td>"
-							+ "<td>"
-							+ product.quantity
-							+ "</td>"
-							+ "<td>"
-							+ product.price
-							+ "</td>"
-							+ "<td>"
-							+ product.category
-							+ "</td>"
-							+ "<td>"
-							+ product.store
-							+ "</td>"
-							+ '<td><button class="btn" onclick="addToShoppingList('
-							+ i + ')">Add to Shopping List</button></td>';
-					tbody.appendChild(row);
-				}
-
-				table.appendChild(thead);
-				table.appendChild(tbody);
-				inventoryListContainer.appendChild(table);
-			}
-		}
-
-		function populateShoppingList() {
-			var shoppingListContainer = document.getElementById('shoppingList');
-			shoppingListContainer.innerHTML = '';
-
-			if (shoppingList.length === 0) {
-				shoppingListContainer.innerHTML = "<p>No products in the shopping list.</p>";
-			} else {
-				var table = document.createElement("table");
-				var thead = document.createElement("thead");
-				var tbody = document.createElement("tbody");
-
-				// Create table header
-				var headerRow = document.createElement("tr");
-				var headers = [ "Name", "Quantity", "Price", "Category",
-						"Store", "" ];
-				for (var i = 0; i < headers.length; i++) {
-					var th = document.createElement("th");
-					th.innerText = headers[i];
-					headerRow.appendChild(th);
-				}
-				thead.appendChild(headerRow);
-
-				// Create table rows
-				for (var i = 0; i < shoppingList.length; i++) {
-					var product = shoppingList[i];
-					var row = document.createElement("tr");
-					row.innerHTML = "<td>"
-							+ product.name
-							+ "</td>"
-							+ "<td>"
-							+ product.quantity
-							+ "</td>"
-							+ "<td>"
-							+ product.price
-							+ "</td>"
-							+ "<td>"
-							+ product.category
-							+ "</td>"
-							+ "<td>"
-							+ product.store
-							+ "</td>"
-							+ '<td><button class="btn" onclick="addToInventory('
-							+ i
-							+ ')">Add to My Inventory</button></td>'
-							+ '<td><button class="btn" onclick="addToInventory('
-							+ i + ')">Remove Product</button></td>';
-					tbody.appendChild(row);
-				}
-
-				table.appendChild(thead);
-				table.appendChild(tbody);
-				shoppingListContainer.appendChild(table);
-			}
-		}
-
-		function populateCategoryDropdown() {
-			var categoryDropdown = document.getElementById('productCategory');
-			categoryDropdown.innerHTML = '<option value="">Select Category</option>';
-
-			for (var i = 0; i < categories.length; i++) {
-				var category = categories[i];
-				categoryDropdown.innerHTML += '<option value="' + category + '">'
-						+ category + '</option>';
-			}
-		}
-
-		function populateStoreDropdown() {
-			var storeDropdown = document.getElementById('productStore');
-			storeDropdown.innerHTML = '<option value="">Select Store</option>';
-
-			for (var i = 0; i < stores.length; i++) {
-				var store = stores[i];
-				storeDropdown.innerHTML += '<option value="' + store + '">'
-						+ store + '</option>';
-			}
-		}
-
-		function populateCategoryList() {
-			var categoryListContainer = document.getElementById('categoryList');
-			categoryListContainer.innerHTML = '';
-
-			for (var i = 0; i < categories.length; i++) {
-				var category = categories[i];
-				var li = document.createElement('li');
-				li.innerHTML = category
-						+ ' <button class="btn" onclick="removeCategory(' + i
-						+ ')">Remove</button>';
-				categoryListContainer.appendChild(li);
-			}
-		}
-
-		function populateStoreList() {
-			var storeListContainer = document.getElementById('storeList');
-			storeListContainer.innerHTML = '';
-
-			for (var i = 0; i < stores.length; i++) {
-				var store = stores[i];
-				var li = document.createElement('li');
-				li.innerHTML = store
-						+ ' <button class="btn" onclick="removeStore(' + i
-						+ ')">Remove</button>';
-				storeListContainer.appendChild(li);
-			}
-		}
-
-		function addCategory() {
-			var newCategoryInput = document.getElementById('newCategory');
-			var newCategory = newCategoryInput.value.trim();
-
-			if (newCategory !== '') {
-				categories.push(newCategory);
-				newCategoryInput.value = '';
-				populateCategoryList();
-				populateCategoryDropdown();
-				saveToLocalStorage();
-			}
-		}
-
-		function removeCategory(index) {
-			categories.splice(index, 1);
-			populateCategoryList();
-			populateCategoryDropdown();
-			saveToLocalStorage();
-		}
-
-		function addStore() {
-			var newStoreInput = document.getElementById('newStore');
-			var newStore = newStoreInput.value.trim();
-
-			if (newStore !== '') {
-				stores.push(newStore);
-				newStoreInput.value = '';
-				populateStoreList();
-				populateStoreDropdown();
-				saveToLocalStorage();
-			}
-		}
-
-		function removeStore(index) {
-			stores.splice(index, 1);
-			populateStoreList();
-			populateStoreDropdown();
-			saveToLocalStorage();
-		}
-
-		function addProduct() {
-			document.getElementById('addProductContainer').style.display = 'block';
-		}
-
-		function closeModal() {
-			document.getElementById('addProductContainer').style.display = 'none';
-		}
-
-		function submitProduct() {
-			var productNameInput = document.getElementById('productName');
-			var productQuantityInput = document
-					.getElementById('productQuantity');
-			var productPriceInput = document.getElementById('productPrice');
-			var productCategoryInput = document
-					.getElementById('productCategory');
-			var productStoreInput = document.getElementById('productStore');
-
-			var productName = productNameInput.value.trim();
-			var productQuantity = productQuantityInput.value.trim();
-			var productPrice = productPriceInput.value.trim();
-			var productCategory = productCategoryInput.value.trim();
-			var productStore = productStoreInput.value.trim();
-
-			if (productName !== '' && productQuantity !== ''
-					&& productPrice !== '' && productCategory !== ''
-					&& productStore !== '') {
-				var product = {
-					name : productName,
-					quantity : productQuantity,
-					price : productPrice,
-					category : productCategory,
-					store : productStore
-				};
-
-				shoppingList.push(product);
-				productNameInput.value = '';
-				productQuantityInput.value = '';
-				productPriceInput.value = '';
-				productCategoryInput.value = '';
-				productStoreInput.value = '';
-
-				closeModal();
-				populateShoppingList();
-				saveToLocalStorage();
-			}
-		}
-
-		function addToShoppingList(index) {
-			var product = inventoryList[index];
-			shoppingList.push(product);
-			inventoryList.splice(index, 1);
-			populateInventoryList();
-			populateShoppingList();
-			saveToLocalStorage();
-		}
-
-		function addToInventory(index) {
-			var product = shoppingList[index];
-			inventoryList.push(product);
-			shoppingList.splice(index, 1);
-			populateInventoryList();
-			populateShoppingList();
-			saveToLocalStorage();
-		}
-
-		function RemoveProduct(index) {
-			inventoryList.splice(index, 1);
-			populateInventoryList();
-		}
-
-		loadFromLocalStorage();
-		openTab('MyInventory');
-	</script>
-	<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-	<script
-		src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+	<script src="https://apis.google.com/js/api.js?onload=handleClientLoad"></script>
 </body>
 </html>
